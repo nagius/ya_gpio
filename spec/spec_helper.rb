@@ -14,7 +14,10 @@
 #
 # See http://rubydoc.info/gems/rspec-core/RSpec/Core/Configuration
 
-require_relative '../lib/gpio'
+require 'bundler/setup'
+Bundler.setup
+
+require 'ya_gpio'
 require 'pp' # Conflict with fakefs, need to be required before fakefs
 require 'fakefs/spec_helpers'
 

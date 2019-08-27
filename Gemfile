@@ -1,4 +1,2 @@
 source "https://rubygems.org"
-
-gem 'rspec'
-gem 'fakefs'
+gemspec
