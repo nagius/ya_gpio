@@ -1,5 +1,3 @@
-#!/usr/bin/env ruby
-
 # YaGPIO - Yet Another GPIO module for Raspberry Pi
 # Copyleft 2019 - Nicolas AGIUS <nicolas.agius@lps-it.fr>
 
@@ -20,21 +18,12 @@
 #
 ###########################################################################
 
-
-# Please note that lib require read/write access to the GPIO Sysfs subdirectory
-# if your script is not running as root, add your user to the gpio group
-
-# Use sysfs interface so do not support integrated pull-down an dull-up resistors
-# https://www.kernel.org/doc/Documentation/gpio/sysfs.txt
-
-
-
 class YaGPIO
 	attr_reader :file	
 
-	INPUT = "in"
-	OUTPUT = "out"
-	OUTPUT_HIGH = "high"
+	INPUT = 'in'
+	OUTPUT = 'out'
+	OUTPUT_HIGH = 'high'
 
 	EDGE_RISING = 'rising'
 	EDGE_FALLING = 'falling'
@@ -154,9 +143,9 @@ class YaGPIO
 			retries ||= 0
 			case @direction
 				when INPUT
-					@file=File.open("/sys/class/gpio/gpio#{@pin}/value", "r")
+					@file=File.open("/sys/class/gpio/gpio#{@pin}/value", 'r')
 				else
-					@file=File.open("/sys/class/gpio/gpio#{@pin}/value", "r+")
+					@file=File.open("/sys/class/gpio/gpio#{@pin}/value", 'r+')
 			end
 
 			@file.sync=true	# Auto flush
