@@ -150,3 +150,4 @@ describe GPIO do
 	
 end
 
+# vim: ts=4:sw=4:ai
