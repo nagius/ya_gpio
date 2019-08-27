@@ -1,10 +1,10 @@
-require_relative 'spec_helper'
+require 'spec_helper'
 
 # TODO ecelption interruption sur output
 # test permission?
 
 
-describe GPIO do
+describe YaGPIO do
 	include FakeFS::SpecHelpers
 
 	let(:pin) { 12 }
@@ -15,35 +15,35 @@ describe GPIO do
 	end
 
 	it 'open a GPIO as output' do
-		gpio = GPIO.new(pin, GPIO::OUTPUT)
+		gpio = YaGPIO.new(pin, YaGPIO::OUTPUT)
 
 		expect(File.read('/sys/class/gpio/export')).to eq pin.to_s
 		expect(File.read("/sys/class/gpio/gpio#{pin}/direction")).to eq 'out'
 	end
 
 	it 'open a GPIO as output with default HIGH value' do
-		gpio = GPIO.new(pin, GPIO::OUTPUT_HIGH)
+		gpio = YaGPIO.new(pin, YaGPIO::OUTPUT_HIGH)
 
 		expect(File.read('/sys/class/gpio/export')).to eq pin.to_s
 		expect(File.read("/sys/class/gpio/gpio#{pin}/direction")).to eq 'high'
 	end
 
 	it 'open a GPIO as input' do
-		gpio = GPIO.new(pin, GPIO::INPUT)
+		gpio = YaGPIO.new(pin, YaGPIO::INPUT)
 
 		expect(File.read('/sys/class/gpio/export')).to eq pin.to_s
 		expect(File.read("/sys/class/gpio/gpio#{pin}/direction")).to eq 'in'
 	end
 
 	it 'close the GPIO' do
-		gpio = GPIO.new(pin, GPIO::INPUT)
+		gpio = YaGPIO.new(pin, YaGPIO::INPUT)
 		gpio.unexport
 
 		expect(File.read('/sys/class/gpio/unexport')).to eq pin.to_s
 	end
 		
 	it 'close the GPIO when destroyed' do
-		gpio = GPIO.new(pin, GPIO::INPUT)
+		gpio = YaGPIO.new(pin, YaGPIO::INPUT)
 		gpio = nil
 
 		GC.start
@@ -51,11 +51,11 @@ describe GPIO do
 	end
 
 	it 'raise when instantiated with wrong direction' do
-		expect{GPIO.new(pin, 'wrong-direction')}.to raise_error(RuntimeError)
+		expect{YaGPIO.new(pin, 'wrong-direction')}.to raise_error(RuntimeError)
 	end
 
 	it 'set active_low' do
-		gpio = GPIO.new(pin, GPIO::OUTPUT)
+		gpio = YaGPIO.new(pin, YaGPIO::OUTPUT)
 
 		gpio.active_low = true
 		expect(File.read("/sys/class/gpio/gpio#{pin}/active_low")).to eq '1'
@@ -65,7 +65,7 @@ describe GPIO do
 	end
 		
 	it 'get active_low' do
-		gpio = GPIO.new(pin, GPIO::OUTPUT)
+		gpio = YaGPIO.new(pin, YaGPIO::OUTPUT)
 
 		File.write("/sys/class/gpio/gpio#{pin}/active_low", '1')
 		expect(gpio.active_low?).to be true
@@ -77,7 +77,7 @@ describe GPIO do
 		
 	it 'reads high value' do
 		File.write("/sys/class/gpio/gpio#{pin}/value", '1')
-		gpio = GPIO.new(pin, GPIO::INPUT)
+		gpio = YaGPIO.new(pin, YaGPIO::INPUT)
 
 		expect(gpio.high?).to be true
 		expect(gpio.low?).to be false
@@ -85,47 +85,47 @@ describe GPIO do
 
 	it 'reads low value' do
 		File.write("/sys/class/gpio/gpio#{pin}/value", '0')
-		gpio = GPIO.new(pin, GPIO::INPUT)
+		gpio = YaGPIO.new(pin, YaGPIO::INPUT)
 
 		expect(gpio.high?).to be false
 		expect(gpio.low?).to be true
 	end
 
 	it 'set high value' do
-		gpio = GPIO.new(pin, GPIO::OUTPUT)
+		gpio = YaGPIO.new(pin, YaGPIO::OUTPUT)
 		gpio.high
 
 		expect(File.read("/sys/class/gpio/gpio#{pin}/value")).to eq '1'
 	end
 		
 	it 'set low value' do
-		gpio = GPIO.new(pin, GPIO::OUTPUT)
+		gpio = YaGPIO.new(pin, YaGPIO::OUTPUT)
 		gpio.low
 
 		expect(File.read("/sys/class/gpio/gpio#{pin}/value")).to eq '0'
 	end
 
 	it 'setup interrupt with edge' do
-		gpio = GPIO.new(pin, GPIO::INPUT)
+		gpio = YaGPIO.new(pin, YaGPIO::INPUT)
 
-		gpio.set_interrupt(GPIO::EDGE_RISING) 
+		gpio.set_interrupt(YaGPIO::EDGE_RISING)
 		expect(File.read("/sys/class/gpio/gpio#{pin}/edge")).to eq 'rising'
 
-		gpio.set_interrupt(GPIO::EDGE_FALLING) 
+		gpio.set_interrupt(YaGPIO::EDGE_FALLING)
 		expect(File.read("/sys/class/gpio/gpio#{pin}/edge")).to eq 'falling'
 
-		gpio.set_interrupt(GPIO::EDGE_BOTH) 
+		gpio.set_interrupt(YaGPIO::EDGE_BOTH)
 		expect(File.read("/sys/class/gpio/gpio#{pin}/edge")).to eq 'both'
 	end
 
 	it 'raise when interrupt set with wrong edge' do
-		gpio = GPIO.new(pin, GPIO::INPUT)
+		gpio = YaGPIO.new(pin, YaGPIO::INPUT)
 
 		expect{gpio.set_interrupt('wrong-edge')}.to raise_error(RuntimeError)
 	end
 
 	it 'clear interrupt' do
-		gpio = GPIO.new(pin, GPIO::INPUT)
+		gpio = YaGPIO.new(pin, YaGPIO::INPUT)
 		gpio.clear_interrupt
 
 		expect(File.read("/sys/class/gpio/gpio#{pin}/edge")).to eq 'none'
@@ -135,16 +135,16 @@ describe GPIO do
 		callback_count = 0
 		File.write("/sys/class/gpio/gpio#{pin}/value", '1')
 
-		gpio = GPIO.new(pin, GPIO::INPUT)
-		gpio.set_interrupt(GPIO::EDGE_BOTH) do |active|
+		gpio = YaGPIO.new(pin, YaGPIO::INPUT)
+		gpio.set_interrupt(YaGPIO::EDGE_BOTH) do |active|
 			callback_count += 1
 			expect(active).to be true
 			
-			GPIO::resume # Prevent infinite loop during testing
+			YaGPIO::resume # Prevent infinite loop during testing
 		end
 
 		allow(IO).to receive(:select).with(nil, nil, [gpio.file]).and_return([nil, nil, [gpio.file]])
-		GPIO::wait([gpio])
+		YaGPIO::wait([gpio])
 		expect(callback_count).to eq 1
 	end
 	

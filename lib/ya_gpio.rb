@@ -29,7 +29,7 @@
 
 
 
-class GPIO
+class YaGPIO
 	attr_reader :file	
 
 	INPUT = "in"
@@ -118,7 +118,7 @@ class GPIO
 	# Software debounce has not been implemented.
 	# You can use a 1uF capacitor in your setup to fix bounce issues.
 	#
-	# Will block until the program exits or GPIO::resume() is called from a callback
+	# Will block until the program exits or YaGPIO::resume() is called from a callback
 	def self.wait(gpios)
 		# Initial read to clear interrupt triggered during setup 
 		gpios.map{|g| g.high?}
