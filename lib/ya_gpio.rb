@@ -104,6 +104,8 @@ class YaGPIO
 		File.write('/sys/class/gpio/unexport', @pin.to_s)
 	end
 
+	alias :close :unexport
+
 	# Software debounce has not been implemented.
 	# You can use a 1uF capacitor in your setup to fix bounce issues.
 	#

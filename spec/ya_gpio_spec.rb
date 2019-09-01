@@ -1,6 +1,5 @@
 require 'spec_helper'
 
-# TODO ecelption interruption sur output
 # test permission?
 
 
@@ -38,6 +37,13 @@ describe YaGPIO do
 	it 'close the GPIO' do
 		gpio = YaGPIO.new(pin, YaGPIO::INPUT)
 		gpio.unexport
+
+		expect(File.read('/sys/class/gpio/unexport')).to eq pin.to_s
+	end
+
+	it 'close the GPIO #2' do
+		gpio = YaGPIO.new(pin, YaGPIO::INPUT)
+		gpio.close
 
 		expect(File.read('/sys/class/gpio/unexport')).to eq pin.to_s
 	end
