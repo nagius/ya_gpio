@@ -18,22 +18,49 @@
 #
 ###########################################################################
 
+# YaGPIO is a simple module to control GPIO port on a Raspberry Pi.
+# It's based on the Sysfs interface.
+#
+# @example Open port 22 as output and set it to high
+#   pin = YaGPIO.new(22, YaGPIO::OUTPUT)
+#   pin.high
+#
+# @example Open port 23 as input and read its state
+#   pin = YaGPIO.new(23, YaGPIO::INPUT)
+#   pp pin.low?
+#
 class YaGPIO
-	attr_reader :file	
+	# File descriptor to the sysfs entry of the pin. It is not recommended to access the file
+	# directly. Use high() lov() helpers instead.
+	attr_reader :file
 
+	# Direction input
 	INPUT = 'in'
+
+	# Direction output with default low
 	OUTPUT = 'out'
+
+	# Direction output with default high
 	OUTPUT_HIGH = 'high'
 
+	# Interruption on rising edge
 	EDGE_RISING = 'rising'
+
+	# Interruption on falling edge
 	EDGE_FALLING = 'falling'
+
+	# Interruption on rising and falling edge
 	EDGE_BOTH = 'both'
+
+	# Disable interruption
 	EDGE_NONE = 'none'
 
-	MAX_RETRY = 3
 
-	@@wait = true
-
+	# Create and configure a new GPIO pin. The pin will be _exported_ via the sysfs interface.
+	# The pin will be _unexported_ and released for other use upon garbage collection.
+	#
+	# @param pin [Integer] Pin number to configure, using the BCM numbering
+	# @param direction [String] The direction if the port. Must be one of INPUT, OUTPUT or OUTPUT_HIGH
 	def initialize(pin, direction)
 		raise 'direction must be one of INPUT, OUTPUT, OUTPUT_HIGH' unless [INPUT, OUTPUT, OUTPUT_HIGH].include?(direction)
 
@@ -47,39 +74,50 @@ class YaGPIO
 		ObjectSpace.define_finalizer(self, self.class.finalize(@pin))
 	end
 
-	# Unexport the port when the program exits
-	def self.finalize(pin)
-		proc do
-			File.write('/sys/class/gpio/unexport', pin)
- 		end
-	end
 
+	# Return true if the pin is high
+	#
+	# @return [Boolean] State of the pin
 	def high?
 		read() != 0
 	end
 
+	# Return true if the pin is low
+	#
+	# @return [Boolean] State of the pin
 	def low?
 		read() == 0
 	end
 
+	# Set the pin to high
 	def high
 		write(1)
 	end
 
+	# Set the pin to low
 	def low
 		write(0)
 	end
 
 	# Invert all values and settings. After set to true, HIGH means LOW and LOW means HIGH.
-	# Be prepared to be confused if you're using this feature
+	# Be prepared to be confused if you're using this feature.
+	#
+	# @param active [Boolean] Feature state
 	def active_low=(active)
 		File.write("/sys/class/gpio/gpio#{@pin}/active_low", active ? '1' : '0')
 	end
 
+	# Return true is active_low feature is enabled
+	#
+	# @return [Boolean] Feature state
 	def active_low?
 		File.read("/sys/class/gpio/gpio#{@pin}/active_low") != '0'
 	end
 
+	# Define a callback to execute when an interruption will be triggered.
+	#
+	# @param edge [String] Edge to trigger interrution. Can be EDGE_RISING, EDGE_FALLING or EDGE_BOTH
+	# @param block [Block] Block to execute as callback
 	def set_interrupt(edge, &block)
 		raise 'interrupt can only be set on input pin' unless @direction == INPUT
 
@@ -87,11 +125,15 @@ class YaGPIO
 		@callback = block
 	end
 
+	# Disable a previously set interruption
 	def clear_interrupt()
 		set_edge(EDGE_NONE)	
 		@callback = nil
 	end
 
+	# Execute the interruption's callback.
+	#
+	# @param active [Boolean] Should be true if the pin is high
 	def trigger(active)
 		if @callback.nil?
 		    puts "No Callback defined for #{@pin}"
@@ -100,16 +142,22 @@ class YaGPIO
 		end
 	end
 
+	# Release the pin.
+	# The object cannot be used after this method is called as the pin will not be configured anymore.
 	def unexport()
+		@file.close
 		File.write('/sys/class/gpio/unexport', @pin.to_s)
 	end
 
 	alias :close :unexport
 
-	# Software debounce has not been implemented.
-	# You can use a 1uF capacitor in your setup to fix bounce issues.
+	# Wait for an interruption to be trigerred and run the associated callback.
+	# This method will block until the program exits or YaGPIO::resume() is called from a callback.
+	# 
+	# Note that software debounce has not been implemented.
+	# You can use a 1µF capacitor in your setup to fix bounce issues.
 	#
-	# Will block until the program exits or YaGPIO::resume() is called from a callback
+	# @param gpios [Array] Array of YaGPIO to monitor
 	def self.wait(gpios)
 		# Initial read to clear interrupt triggered during setup 
 		gpios.map{|g| g.high?}
@@ -125,12 +173,15 @@ class YaGPIO
 		end
 	end
 
-	# Stop the wait loop, must be run from a callbacktriggered by the wait
+	# Stop the wait loop, must be run from a callback triggered by YaGPIO::wait()
 	def self.resume
 		@@wait = false
 	end
 
 	private
+
+	MAX_RETRY = 3	# Number of retries when openning the sysfs file
+	@@wait = true	# Flag to enable the wait infinite loop
 
 	def export()
 		begin
@@ -178,6 +229,14 @@ class YaGPIO
 		@file.seek(0, IO::SEEK_SET)
 		@file.write(value)
 	end
+
+	# Unexport the port when the program exits
+	def self.finalize(pin)
+		proc do
+			File.write('/sys/class/gpio/unexport', pin)
+		end
+	end
+
 end
 
 # vim: ts=4:sw=4:ai

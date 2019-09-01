@@ -17,5 +17,6 @@ Gem::Specification.new do |s|
   s.license     = 'GPL-3.0'
   s.add_development_dependency 'rspec', '~> 3.8'
   s.add_development_dependency 'fakefs', '~> 0.20'
+  s.add_development_dependency 'yard', '~> 0.9'
 end
 
