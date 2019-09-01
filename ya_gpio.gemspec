@@ -14,6 +14,7 @@ Gem::Specification.new do |s|
   s.files       = `git ls-files`.split("\n")
   s.test_files  = s.files.grep(%r{^(test|spec)/})
   s.homepage    = 'https://github.com/nagius/ya_gpio'
+  s.metadata    = { "source_code_uri" => "https://github.com/nagius/ya_gpio" }
   s.license     = 'GPL-3.0'
   s.add_development_dependency 'rspec', '~> 3.8'
   s.add_development_dependency 'fakefs', '~> 0.20'
